@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { NavigationMenuDemo } from "@/components/NavigationMenuDemo";
+import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
+import { Toaster } from "@/components/ui/sonner";
+import { AuthProvider } from "@/contexts/authContexts";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -27,7 +31,12 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <AuthProvider>
+          <AnimatedThemeToggler className="fixed top-4 right-4 z-50" />
+          <NavigationMenuDemo />
+          {children}
+          <Toaster richColors position="top-right" />
+        </AuthProvider>
       </body>
     </html>
   );
