@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import Link from "next/link"
+import Link from "next/link";
 // Import global styles (asegúrate que globals.css existe en app/)
 import "./globals.css";
 
@@ -8,6 +8,7 @@ import { NavigationMenuMain } from "@/components/NavigationMenuMain";
 import { AuthButton } from "@/components/AuthButton";
 import { ProgressiveBlur } from "@/components/ui/progressive-blur";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { Toaster } from "@/components/ui/sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -52,6 +53,7 @@ export default function RootLayout({
             </div>
           </header>
           {children}
+          <Toaster />
         </AuthProvider>
       </body>
     </html>
