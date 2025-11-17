@@ -81,7 +81,7 @@ export default function SolicitudesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 pt-24 pb-16">
+    <div className="min-h-screen bg-linear-to-b from-white to-gray-50 pt-24 pb-16">
       <div className="container mx-auto px-4 max-w-6xl">
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -110,10 +110,11 @@ export default function SolicitudesPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+                <label htmlFor="titulo" className="block text-sm font-medium text-slate-700 mb-2">
                   Título
                 </label>
                 <Input
+                  id="titulo"
                   placeholder="¿Qué servicio necesitas?"
                   value={nuevaSolicitud.titulo}
                   onChange={(e) =>
@@ -123,10 +124,11 @@ export default function SolicitudesPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+                <label htmlFor="descripcion" className="block text-sm font-medium text-slate-700 mb-2">
                   Descripción
                 </label>
                 <Textarea
+                  id="descripcion"
                   placeholder="Describe los detalles de tu solicitud..."
                   value={nuevaSolicitud.descripcion}
                   onChange={(e) =>
@@ -140,10 +142,11 @@ export default function SolicitudesPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+                <label htmlFor="categoria" className="block text-sm font-medium text-slate-700 mb-2">
                   Categoría
                 </label>
                 <Input
+                  id="categoria"
                   placeholder="Ej: Hogar, Diseño, Tecnología..."
                   value={nuevaSolicitud.categoria}
                   onChange={(e) =>

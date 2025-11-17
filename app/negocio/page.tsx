@@ -50,7 +50,7 @@ export default function NegocioPage() {
     horario: "Lun-Vie 9:00-18:00",
   });
 
-  const [ofertas, setOfertas] = useState<Oferta[]>([
+  const [ofertas] = useState<Oferta[]>([
     {
       id: "1",
       solicitudTitulo: "Necesito servicio de plomería",
@@ -89,7 +89,7 @@ export default function NegocioPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 pt-24 pb-16">
+    <div className="min-h-screen bg-linear-to-b from-white to-gray-50 pt-24 pb-16">
       <div className="container mx-auto px-4 max-w-6xl">
         <h1 className="text-4xl font-bold text-slate-700 mb-2">Mi Negocio</h1>
         <p className="text-neutral-600 mb-8">
@@ -142,118 +142,125 @@ export default function NegocioPage() {
               <CardContent className="space-y-4">
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Nombre del Negocio
-                    </label>
-                    <Input
-                      value={editando ? datosEditados.nombre : negocio.nombre}
-                      onChange={(e) =>
-                        setDatosEditados({ ...datosEditados, nombre: e.target.value })
-                      }
-                      disabled={!editando}
-                      className="border-slate-300"
-                    />
+                      <label htmlFor="nombreNegocio" className="block text-sm font-medium text-slate-700 mb-2">
+                        Nombre del Negocio
+                      </label>
+                      <Input
+                        id="nombreNegocio"
+                        value={editando ? datosEditados.nombre : negocio.nombre}
+                        onChange={(e) =>
+                          setDatosEditados({ ...datosEditados, nombre: e.target.value })
+                        }
+                        disabled={!editando}
+                        className="border-slate-300"
+                      />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Categoría
-                    </label>
-                    <Input
-                      value={editando ? datosEditados.categoria : negocio.categoria}
-                      onChange={(e) =>
-                        setDatosEditados({
-                          ...datosEditados,
-                          categoria: e.target.value,
-                        })
-                      }
-                      disabled={!editando}
-                      className="border-slate-300"
-                    />
+                      <label htmlFor="categoria" className="block text-sm font-medium text-slate-700 mb-2">
+                        Categoría
+                      </label>
+                      <Input
+                        id="categoria"
+                        value={editando ? datosEditados.categoria : negocio.categoria}
+                        onChange={(e) =>
+                          setDatosEditados({
+                            ...datosEditados,
+                            categoria: e.target.value,
+                          })
+                        }
+                        disabled={!editando}
+                        className="border-slate-300"
+                      />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Descripción
-                  </label>
-                  <Textarea
-                    value={editando ? datosEditados.descripcion : negocio.descripcion}
-                    onChange={(e) =>
-                      setDatosEditados({
-                        ...datosEditados,
-                        descripcion: e.target.value,
-                      })
-                    }
-                    disabled={!editando}
-                    rows={3}
-                    className="border-slate-300"
-                  />
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Ciudad
+                    <label htmlFor="descripcion" className="block text-sm font-medium text-slate-700 mb-2">
+                      Descripción
                     </label>
-                    <Input
-                      value={editando ? datosEditados.ciudad : negocio.ciudad}
-                      onChange={(e) =>
-                        setDatosEditados({ ...datosEditados, ciudad: e.target.value })
-                      }
-                      disabled={!editando}
-                      className="border-slate-300"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Teléfono
-                    </label>
-                    <Input
-                      value={editando ? datosEditados.telefono : negocio.telefono}
+                    <Textarea
+                      id="descripcion"
+                      value={editando ? datosEditados.descripcion : negocio.descripcion}
                       onChange={(e) =>
                         setDatosEditados({
                           ...datosEditados,
-                          telefono: e.target.value,
+                          descripcion: e.target.value,
                         })
                       }
                       disabled={!editando}
+                      rows={3}
                       className="border-slate-300"
                     />
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                      <label htmlFor="ciudad" className="block text-sm font-medium text-slate-700 mb-2">
+                        Ciudad
+                      </label>
+                      <Input
+                        id="ciudad"
+                        value={editando ? datosEditados.ciudad : negocio.ciudad}
+                        onChange={(e) =>
+                          setDatosEditados({ ...datosEditados, ciudad: e.target.value })
+                        }
+                        disabled={!editando}
+                        className="border-slate-300"
+                      />
+                  </div>
+                  <div>
+                      <label htmlFor="telefono" className="block text-sm font-medium text-slate-700 mb-2">
+                        Teléfono
+                      </label>
+                      <Input
+                        id="telefono"
+                        value={editando ? datosEditados.telefono : negocio.telefono}
+                        onChange={(e) =>
+                          setDatosEditados({
+                            ...datosEditados,
+                            telefono: e.target.value,
+                          })
+                        }
+                        disabled={!editando}
+                        className="border-slate-300"
+                      />
                   </div>
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Email
-                    </label>
-                    <Input
-                      value={editando ? datosEditados.email : negocio.email}
-                      onChange={(e) =>
-                        setDatosEditados({ ...datosEditados, email: e.target.value })
-                      }
-                      disabled={!editando}
-                      type="email"
-                      className="border-slate-300"
-                    />
+                      <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">
+                        Email
+                      </label>
+                      <Input
+                        id="email"
+                        value={editando ? datosEditados.email : negocio.email}
+                        onChange={(e) =>
+                          setDatosEditados({ ...datosEditados, email: e.target.value })
+                        }
+                        disabled={!editando}
+                        type="email"
+                        className="border-slate-300"
+                      />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Horario
-                    </label>
-                    <Input
-                      value={editando ? datosEditados.horario : negocio.horario}
-                      onChange={(e) =>
-                        setDatosEditados({ ...datosEditados, horario: e.target.value })
-                      }
-                      disabled={!editando}
-                      className="border-slate-300"
-                    />
+                      <label htmlFor="horario" className="block text-sm font-medium text-slate-700 mb-2">
+                        Horario
+                      </label>
+                      <Input
+                        id="horario"
+                        value={editando ? datosEditados.horario : negocio.horario}
+                        onChange={(e) =>
+                          setDatosEditados({ ...datosEditados, horario: e.target.value })
+                        }
+                        disabled={!editando}
+                        className="border-slate-300"
+                      />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                  <label htmlFor="calificacion" className="block text-sm font-medium text-slate-700 mb-2">
                     Calificación
                   </label>
                   <div className="flex items-center gap-2">

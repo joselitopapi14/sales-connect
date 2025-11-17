@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+// Import global styles (asegúrate que globals.css existe en app/)
 import "./globals.css";
 
 import { NavigationMenuMain } from "@/components/NavigationMenuMain";

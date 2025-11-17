@@ -11,14 +11,14 @@ export default function HeroSectionOne() {
         <h1 className="relative z-10 mx-auto mt-20 max-w-4xl text-center text-2xl font-bold text-slate-700 md:text-4xl lg:text-7xl dark:text-slate-300">
           {"Pide lo que quieras, los negocios te encuentran"
             .split(" ")
-            .map((word, index) => (
+            .map((word) => (
               <motion.span
-                key={index}
+                key={word}
                 initial={{ opacity: 0, filter: "blur(4px)", y: 10 }}
                 animate={{ opacity: 1, filter: "blur(0px)", y: 0 }}
                 transition={{
                   duration: 0.3,
-                  delay: index * 0.1,
+                  delay: 0.1,
                   ease: "easeInOut",
                 }}
                 className="mr-2 inline-block"
@@ -84,7 +84,7 @@ export default function HeroSectionOne() {
             <Image
               src="https://assets.aceternity.com/pro/aceternity-landing.webp"
               alt="Landing page preview"
-              className="aspect-[16/9] h-auto w-full object-cover"
+              className="aspect-video h-auto w-full object-cover"
               height={1000}
               width={1000}
             />
@@ -95,16 +95,4 @@ export default function HeroSectionOne() {
   );
 }
 
-const Navbar = () => {
-  return (
-    <nav className="flex w-full items-center justify-between px-4 py-4">
-      <div className="flex items-center gap-2">
-        <div className="size-7 rounded-full bg-gradient-to-br from-violet-500 to-pink-500" />
-        <h1 className="text-base font-bold md:text-2xl">Aceternity UI</h1>
-      </div>
-      <Button className="w-24 transform rounded-lg bg-slate-700 px-6 py-2 font-medium text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-gray-800 md:w-32 dark:bg-white dark:text-slate-700 dark:hover:bg-gray-200">
-        Login
-      </Button>
-    </nav>
-  );
-};
+// Componente Navbar eliminado porque no se usa

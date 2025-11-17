@@ -1,18 +1,19 @@
-import type React from "react";
-import { useEffect } from "react";
+import { useEffect, useCallback } from "react";
 
-export const useOutsideClick = (
-  ref: React.RefObject<HTMLDivElement | null>,
+export function useOutsideClick<T extends HTMLElement>(
+  ref: React.RefObject<T>,
   callback: (event: MouseEvent | TouchEvent) => void
-) => {
+) {
+  const stableCallback = useCallback(callback, []);
+
   useEffect(() => {
-    const listener = (event: MouseEvent | TouchEvent) => {
-      // DO NOTHING if the element being clicked is the target element or their children
-      if (!ref.current || ref.current.contains(event.target)) {
+    function listener(event: MouseEvent | TouchEvent) {
+      const target = event.target as Node;
+      if (!ref.current || ref.current.contains(target)) {
         return;
       }
-      callback(event);
-    };
+      stableCallback(event);
+    }
 
     document.addEventListener("mousedown", listener);
     document.addEventListener("touchstart", listener);
@@ -21,5 +22,5 @@ export const useOutsideClick = (
       document.removeEventListener("mousedown", listener);
       document.removeEventListener("touchstart", listener);
     };
-  }, [ref, callback]);
-};
+  }, [ref, stableCallback]);
+}
