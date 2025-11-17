@@ -22,7 +22,7 @@ export default function ExpandableCardDemo() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/20 h-full w-full z-10"
+            className="fixed inset-0 bg-slate-700/20 h-full w-full z-10"
           />
         )}
       </AnimatePresence>
@@ -175,7 +175,7 @@ export const CloseIcon = () => {
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="h-4 w-4 text-black"
+      className="h-4 w-4 text-slate-700"
       role="img"
       aria-labelledby="close-icon-title"
     >

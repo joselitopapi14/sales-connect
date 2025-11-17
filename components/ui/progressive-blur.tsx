@@ -74,7 +74,7 @@ export function ProgressiveBlur({
 
         return (
           <div
-            key={`blur-${index}`}
+            key={`blur-${blurLevels[blurIndex]}`}
             className="absolute inset-0"
             style={{
               zIndex: index + 2,
