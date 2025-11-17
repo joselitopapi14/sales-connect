@@ -35,7 +35,7 @@ export function AuthButton() {
   return (
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" className="flex items-center gap-2">
+        <Button variant="ghost" className="flex items-center gap-2">
           {user.user_metadata?.avatar_url ? (
             <Image
               src={user.user_metadata.avatar_url}
@@ -54,7 +54,7 @@ export function AuthButton() {
           </span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56" align="start">
+      <DropdownMenuContent className="w-56" align="end">
         <DropdownMenuLabel>Mi Cuenta</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>

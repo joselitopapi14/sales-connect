@@ -89,7 +89,7 @@ export default function NegocioPage() {
   };
 
   return (
-    <div className="min-h-screen mt-10 bg-linear-to-b from-white to-gray-50 pt-24 pb-16">
+    <div className="min-h-screen mt-5 bg-linear-to-b from-white to-gray-50 pt-24 pb-16">
       <div className="container mx-auto px-4 max-w-6xl">
         <h1 className="text-4xl font-bold text-slate-700 mb-2">Mi Negocio</h1>
         <p className="text-neutral-600 mb-8">

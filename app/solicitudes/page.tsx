@@ -81,7 +81,7 @@ export default function SolicitudesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-linear-to-b from-white to-gray-50 pt-24 pb-16">
+    <div className="min-h-screen mt-5 bg-linear-to-b from-white to-gray-50 pt-24 pb-16">
       <div className="container mx-auto px-4 max-w-6xl">
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -168,7 +168,7 @@ export default function SolicitudesPage() {
           </Card>
         )}
 
-        <div className="grid gap-6 mt-10 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {solicitudes.map((solicitud) => (
             <Card
               key={solicitud.id}
