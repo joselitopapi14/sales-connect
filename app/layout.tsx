@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Link from "next/link"
 // Import global styles (asegúrate que globals.css existe en app/)
 import "./globals.css";
 
@@ -36,7 +37,7 @@ export default function RootLayout({
         <AuthProvider>
           <header className="flex items-center justify-between p-5 gap-35 fixed top-0 left-0 right-0 z-20">
             <ProgressiveBlur position="top" height="140px" blurLevels={[1, 2, 4, 8, 16, 32, 64, 128]}/>
-            <div className="flex items-center justify-center z-10">
+            <Link href="/" className="flex items-center justify-center z-10">
               <svg width="56" height="56" viewBox="0 0 375 345" xmlns="http://www.w3.org/2000/svg">
                 <title>Company Logo</title>
                 <g transform="translate(-10.542937,-7.6143431)">
@@ -44,7 +45,7 @@ export default function RootLayout({
                 </g>
               </svg>
               <h3 className="text-2xl font-bold ml-2 text-slate-700">Sales Connect</h3>
-            </div>
+            </Link>
             <NavigationMenuMain />
             <div className="z-10">
               <AuthButton />
