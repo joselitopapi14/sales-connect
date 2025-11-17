@@ -1,6 +1,7 @@
 "use client"
 
-import React, { useCallback, useMemo, useRef, useState } from "react"
+import type React from "react"
+import { useCallback, useMemo, useRef, useState } from "react"
 import { AnimatePresence, motion, useMotionTemplate } from "motion/react"
 
 interface Position {
@@ -105,19 +106,17 @@ export function Lens({
         </div>
       </motion.div>
     )
-  }, [currentPosition, lensSize, lensColor, zoomFactor, children, duration])
+  }, [currentPosition, maskImage, zoomFactor, children, duration])
 
   return (
-    <div
+    <section
       ref={containerRef}
       className="relative z-20 overflow-hidden rounded-xl"
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
       onMouseMove={handleMouseMove}
       onKeyDown={handleKeyDown}
-      role="region"
       aria-label={ariaLabel}
-      tabIndex={0}
     >
       {children}
       {isStatic || defaultPosition ? (
@@ -127,6 +126,6 @@ export function Lens({
           {isHovering && LensContent}
         </AnimatePresence>
       )}
-    </div>
+    </section>
   )
 }

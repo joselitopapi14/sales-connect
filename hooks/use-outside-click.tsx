@@ -1,7 +1,7 @@
 import { useEffect, useCallback } from "react";
 
 export function useOutsideClick<T extends HTMLElement>(
-  ref: React.RefObject<T>,
+  ref: React.RefObject<T | null>,
   callback: (event: MouseEvent | TouchEvent) => void
 ) {
   const stableCallback = useCallback(callback, []);

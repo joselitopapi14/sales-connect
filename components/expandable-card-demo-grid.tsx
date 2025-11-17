@@ -10,7 +10,7 @@ export default function ExpandableCardDemo() {
     null
   );
   const id = useId();
-  const ref = useRef<HTMLDivElement>(null);
+  const ref = useRef<HTMLElement>(null);
 
   useOutsideClick(ref, () => setActive(null));
 
@@ -51,7 +51,7 @@ export default function ExpandableCardDemo() {
             </motion.button>
             <motion.div
               layoutId={`card-${active.title}-${id}`}
-              ref={ref}
+              ref={ref as React.RefObject<HTMLDivElement>}
               className="w-full max-w-[500px]  h-full md:h-fit md:max-h-[90%]  flex flex-col bg-white dark:bg-neutral-900 sm:rounded-3xl overflow-hidden"
             >
               <motion.div layoutId={`image-${active.title}-${id}`}>

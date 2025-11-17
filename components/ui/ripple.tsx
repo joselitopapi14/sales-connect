@@ -1,4 +1,4 @@
-import React, { ComponentPropsWithoutRef, CSSProperties } from "react"
+import React, { type ComponentPropsWithoutRef, type CSSProperties } from "react"
 
 import { cn } from "@/lib/utils"
 
@@ -18,7 +18,7 @@ export const Ripple = React.memo(function Ripple({
   return (
     <div
       className={cn(
-        "pointer-events-none absolute inset-0 [mask-image:linear-gradient(to_bottom,white,transparent)] select-none",
+        "pointer-events-none absolute inset-0 mask-[linear-gradient(to_bottom,white,transparent)] select-none",
         className
       )}
       {...props}
@@ -31,7 +31,7 @@ export const Ripple = React.memo(function Ripple({
 
         return (
           <div
-            key={i}
+            key={`ripple-${size}`}
             className={`animate-ripple bg-foreground/25 absolute rounded-full border shadow-xl`}
             style={
               {
