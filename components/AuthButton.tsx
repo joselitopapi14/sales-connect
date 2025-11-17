@@ -33,7 +33,7 @@ export function AuthButton() {
   }
 
   return (
-    <DropdownMenu>
+    <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" className="flex items-center gap-2">
           {user.user_metadata?.avatar_url ? (
@@ -42,7 +42,7 @@ export function AuthButton() {
               alt={user.user_metadata?.name || "User"}
               width={24}
               height={24}
-              className="rounded-full"
+              className="rounded-full size-6 object-cover"
             />
           ) : (
             <div className="size-6 rounded-full bg-slate-700 flex items-center justify-center text-white text-xs font-medium">
@@ -66,7 +66,7 @@ export function AuthButton() {
                   alt={user.user_metadata?.name || "User"}
                   width={32}
                   height={32}
-                  className="rounded-full"
+                  className="rounded-full size-8 object-cover"
                 />
               ) : (
                 <div className="size-8 rounded-full bg-slate-700 flex items-center justify-center text-white text-sm font-medium">
