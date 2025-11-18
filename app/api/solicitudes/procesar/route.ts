@@ -69,6 +69,9 @@ export async function POST(request: Request) {
     // Generar embeddings y guardar en el carrito
     const itemsGuardados = [];
     const errores: Array<{ producto: string; error: string }> = [];
+    
+    // Generar un ID único para esta solicitud/pedido
+    const solicitudId = crypto.randomUUID();
 
     for (const producto of productosFraccionados) {
       try {
@@ -83,6 +86,7 @@ export async function POST(request: Request) {
           .from("carrito")
           .insert({
             user_id: user.id,
+            solicitud_id: solicitudId,
             producto_descripcion: producto.descripcion,
             cantidad: producto.cantidad,
             embedding: embedding,

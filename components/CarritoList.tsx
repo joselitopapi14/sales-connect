@@ -3,8 +3,26 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
+
+interface Oferta {
+  id: string;
+  negocio_id: string;
+  precio_ofertado: number;
+  stock_disponible: number;
+  mensaje: string | null;
+  estado: string;
+  created_at: string;
+  negocios: {
+    nombre: string;
+    descripcion: string | null;
+  };
+}
 
 interface CarritoItem {
   id: string;
@@ -12,7 +30,13 @@ interface CarritoItem {
   cantidad: number;
   estado: string;
   created_at: string;
-  ofertas: { count: number }[];
+  ofertas: Oferta[];
+}
+
+interface Solicitud {
+  solicitud_id: string;
+  created_at: string;
+  items: CarritoItem[];
 }
 
 interface CarritoListProps {
@@ -36,7 +60,7 @@ const estadoLabels: Record<string, string> = {
 };
 
 export function CarritoList({ refreshTrigger }: CarritoListProps) {
-  const [carrito, setCarrito] = useState<CarritoItem[]>([]);
+  const [solicitudes, setSolicitudes] = useState<Solicitud[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchCarrito = async () => {
@@ -49,7 +73,7 @@ export function CarritoList({ refreshTrigger }: CarritoListProps) {
         throw new Error(data.error || "Error obteniendo carrito");
       }
 
-      setCarrito(data.carrito);
+      setSolicitudes(data.solicitudes);
     } catch (error) {
       console.error("Error:", error);
       toast.error("No se pudo cargar tu carrito");
@@ -65,16 +89,15 @@ export function CarritoList({ refreshTrigger }: CarritoListProps) {
 
   if (loading) {
     return (
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2">
         {[...Array(3)].map((_, i) => (
-          <Card key={`skeleton-${i}`}>
+          <Card key={`skeleton-${i}-${Date.now()}`}>
             <CardHeader>
-              <Skeleton className="h-6 w-3/4" />
-              <Skeleton className="h-4 w-1/2 mt-2" />
+              <Skeleton className="h-6 w-40" />
+              <Skeleton className="h-4 w-32" />
             </CardHeader>
             <CardContent>
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-2/3 mt-2" />
+              <Skeleton className="h-20 w-full" />
             </CardContent>
           </Card>
         ))}
@@ -82,15 +105,12 @@ export function CarritoList({ refreshTrigger }: CarritoListProps) {
     );
   }
 
-  if (carrito.length === 0) {
+  if (solicitudes.length === 0) {
     return (
-      <Card className="text-center py-12">
-        <CardContent>
-          <p className="text-muted-foreground text-lg">
-            No tienes solicitudes en tu carrito
-          </p>
-          <p className="text-sm text-muted-foreground mt-2">
-            Usa el campo de arriba para agregar productos o servicios
+      <Card>
+        <CardContent className="flex flex-col items-center justify-center py-12">
+          <p className="text-muted-foreground text-center">
+            No tienes solicitudes aún. Usa el formulario arriba para agregar productos.
           </p>
         </CardContent>
       </Card>
@@ -98,42 +118,119 @@ export function CarritoList({ refreshTrigger }: CarritoListProps) {
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      {carrito.map((item) => {
-        const ofertasCount = item.ofertas?.[0]?.count || 0;
-        
+    <div className="grid gap-2 md:grid-cols-4">
+      {solicitudes.map((solicitud) => {
+        const fecha = new Date(solicitud.created_at).toLocaleString("es", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+
         return (
-          <Card key={item.id} className="hover:shadow-lg transition-shadow">
+          <Card key={solicitud.solicitud_id} className="hover:shadow-lg transition-shadow">
             <CardHeader>
-              <div className="flex items-start justify-between gap-2">
-                <CardTitle className="text-lg line-clamp-2">
-                  {item.producto_descripcion}
-                </CardTitle>
-                <Badge
-                  variant="outline"
-                  className={estadoColors[item.estado] || ""}
-                >
-                  {estadoLabels[item.estado] || item.estado}
-                </Badge>
-              </div>
-              <CardDescription>
-                Cantidad: {item.cantidad}
-              </CardDescription>
+              <CardDescription>{fecha}</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">
-                  {new Date(item.created_at).toLocaleDateString("es-ES", {
-                    day: "numeric",
-                    month: "short",
-                    year: "numeric",
-                  })}
-                </span>
-                {ofertasCount > 0 && (
-                  <Badge variant="secondary" className="text-xs">
-                    {ofertasCount} {ofertasCount === 1 ? "oferta" : "ofertas"}
-                  </Badge>
-                )}
+            <CardContent>
+              <div className="space-y-2">
+                {solicitud.items.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex items-start justify-between gap-3 p-3 rounded-lg bg-muted/50"
+                  >
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="font-medium text-sm">
+                          {item.producto_descripcion}
+                        </p>
+                        <Badge variant="default" className="shrink-0">
+                          Cantidad: {item.cantidad}
+                        </Badge>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <Badge
+                          variant="outline"
+                          className={estadoColors[item.estado] || estadoColors.pendiente}
+                        >
+                          {estadoLabels[item.estado] || item.estado}
+                        </Badge>
+                        
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="outline" size="sm" className="h-7 text-xs">
+                              {item.ofertas.length > 0 
+                                ? `Ver ${item.ofertas.length} ${item.ofertas.length === 1 ? "oferta" : "ofertas"}`
+                                : "Ver ofertas"
+                              }
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-80" align="end">
+                            <div className="space-y-2">
+                              <h4 className="font-semibold text-sm">Ofertas recibidas</h4>
+                              <Separator />
+                              {item.ofertas.length > 0 ? (
+                                <ScrollArea className="h-[300px] pr-4">
+                                  <div className="space-y-3">
+                                    {item.ofertas.map((oferta) => (
+                                      <div
+                                        key={oferta.id}
+                                        className="p-3 rounded-lg border bg-card space-y-2"
+                                      >
+                                        <div className="flex items-center justify-between">
+                                          <p className="font-semibold text-sm">
+                                            {oferta.negocios.nombre}
+                                          </p>
+                                          <Badge variant="secondary" className="text-xs">
+                                            ${oferta.precio_ofertado}
+                                          </Badge>
+                                        </div>
+                                        
+                                        {oferta.negocios.descripcion && (
+                                          <p className="text-xs text-muted-foreground">
+                                            {oferta.negocios.descripcion}
+                                          </p>
+                                        )}
+                                        
+                                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                          <span>Stock: {oferta.stock_disponible}</span>
+                                          <span>
+                                            {new Date(oferta.created_at).toLocaleDateString("es")}
+                                          </span>
+                                        </div>
+                                        
+                                        {oferta.mensaje && (
+                                          <p className="text-xs border-l-2 border-primary pl-2 italic">
+                                            {oferta.mensaje}
+                                          </p>
+                                        )}
+                                        
+                                        <Button size="sm" className="w-full">
+                                          Seleccionar oferta
+                                        </Button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </ScrollArea>
+                              ) : (
+                                <div className="flex flex-col items-center justify-center py-8 text-center">
+                                  <p className="text-sm text-muted-foreground">
+                                    Aún no hay ofertas para este producto.
+                                  </p>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    Los negocios recibirán una notificación.
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>
