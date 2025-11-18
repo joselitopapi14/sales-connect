@@ -17,6 +17,33 @@ export async function POST(request: Request) {
       );
     }
 
+    // Verificar que el usuario exista en la tabla usuarios
+    const { data: usuarioExistente } = await supabase
+      .from("usuarios")
+      .select("id")
+      .eq("id", user.id)
+      .single();
+
+    // Si no existe, crearlo
+    if (!usuarioExistente) {
+      const { error: insertError } = await supabase
+        .from("usuarios")
+        .insert({
+          id: user.id,
+          email: user.email,
+          nombre_completo: user.user_metadata?.full_name || user.email?.split('@')[0],
+          avatar_url: user.user_metadata?.avatar_url,
+        });
+
+      if (insertError) {
+        console.error("Error creando usuario:", insertError);
+        return NextResponse.json(
+          { error: "Error creando perfil de usuario" },
+          { status: 500 }
+        );
+      }
+    }
+
     // Obtener el input del usuario
     const { input } = await request.json();
 
@@ -30,6 +57,8 @@ export async function POST(request: Request) {
     // Fraccionar el input en productos individuales
     const productosFraccionados = await fraccionarSolicitud(input);
 
+    console.log("Productos fraccionados:", productosFraccionados);
+
     if (productosFraccionados.length === 0) {
       return NextResponse.json(
         { error: "No se pudieron extraer productos del input" },
@@ -39,11 +68,15 @@ export async function POST(request: Request) {
 
     // Generar embeddings y guardar en el carrito
     const itemsGuardados = [];
+    const errores: Array<{ producto: string; error: string }> = [];
 
     for (const producto of productosFraccionados) {
       try {
+        console.log(`Procesando producto: ${producto.descripcion}, cantidad: ${producto.cantidad}`);
+        
         // Generar embedding para el producto
         const embedding = await generarEmbedding(producto.descripcion);
+        console.log(`Embedding generado (primeros 5 valores):`, embedding.slice(0, 5));
 
         // Insertar en la tabla carrito
         const { data, error } = await supabase
@@ -59,20 +92,41 @@ export async function POST(request: Request) {
           .single();
 
         if (error) {
-          console.error("Error insertando en carrito:", error);
+          console.error("Error insertando en carrito:", {
+            error,
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code,
+            producto: producto.descripcion,
+          });
+          errores.push({
+            producto: producto.descripcion,
+            error: error.message,
+          });
           throw error;
         }
 
+        console.log(`Producto guardado exitosamente:`, data);
         itemsGuardados.push(data);
       } catch (error) {
-        console.error(`Error procesando producto "${producto.descripcion}":`, error);
+        console.error(`Error procesando producto "${producto.descripcion}":`, {
+          error,
+          message: error instanceof Error ? error.message : "Error desconocido",
+          stack: error instanceof Error ? error.stack : undefined,
+        });
         // Continuar con los siguientes productos incluso si uno falla
       }
     }
 
     if (itemsGuardados.length === 0) {
+      console.error("No se guardó ningún producto. Errores:", errores);
       return NextResponse.json(
-        { error: "No se pudo guardar ningún producto en el carrito" },
+        { 
+          error: "No se pudo guardar ningún producto en el carrito",
+          errores: errores,
+          totalProductos: productosFraccionados.length,
+        },
         { status: 500 }
       );
     }

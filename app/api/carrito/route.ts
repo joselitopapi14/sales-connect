@@ -17,15 +17,24 @@ export async function GET() {
       .from("carrito")
       .select(`
         *,
-        ofertas:ofertas(count)
+        ofertas:ofertas!ofertas_carrito_id_fkey(count)
       `)
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
 
     if (error) {
-      console.error("Error obteniendo carrito:", error);
+      console.error("Error obteniendo carrito:", {
+        error,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code,
+      });
       return NextResponse.json(
-        { error: "Error obteniendo carrito" },
+        { 
+          error: "Error obteniendo carrito",
+          detalles: error.message,
+        },
         { status: 500 }
       );
     }

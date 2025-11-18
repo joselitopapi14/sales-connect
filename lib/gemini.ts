@@ -6,6 +6,7 @@ if (!process.env.GEMINI_API_KEY) {
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
+// Usar gemini-1.5-flash que tiene mejor cuota en el tier gratuito
 export const geminiModel = genAI.getGenerativeModel({ 
   model: "gemini-2.5-flash" 
 });
