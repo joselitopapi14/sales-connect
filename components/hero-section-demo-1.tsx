@@ -3,8 +3,11 @@
 import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 export default function HeroSectionOne() {
+  const router = useRouter();
+
   return (
     <div className="relative mx-auto flex max-w-7xl flex-col items-center justify-center">
       <div className="px-4 py-10 md:py-20">
@@ -41,9 +44,7 @@ export default function HeroSectionOne() {
           }}
           className="relative z-10 mx-auto max-w-xl py-4 text-center text-lg font-normal text-neutral-600 dark:text-neutral-400"
         >
-          With AI, you can launch your website in hours, not days. Try our best
-          in class, state of the art, cutting edge AI tools to get your website
-          up.
+          Con ayuda de inteligencia artificial, conecta con los negocios locales y recibe ofertas en tiempo real.
         </motion.p>
         <motion.div
           initial={{
@@ -58,11 +59,14 @@ export default function HeroSectionOne() {
           }}
           className="relative z-10 mt-8 flex flex-wrap items-center justify-center gap-4"
         >
-          <Button className="w-60 transform rounded-lg bg-slate-700 px-6 py-2 font-medium text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-gray-700 dark:bg-white dark:text-slate-700 dark:hover:bg-gray-200">
-            Explore Now
+          <Button 
+            onClick={() => router.push('/solicitudes')}
+            className="w-60 transform rounded-lg bg-slate-700 px-6 py-2 font-medium text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-gray-700 dark:bg-white dark:text-slate-700 dark:hover:bg-gray-200"
+          >
+            Quiero pedir
           </Button>
           <Button className="w-60 transform rounded-lg border border-gray-300 bg-white px-6 py-2 font-medium text-slate-700 transition-all duration-300 hover:-translate-y-0.5 hover:bg-gray-100 dark:border-gray-700 dark:bg-slate-700 dark:text-white dark:hover:bg-gray-900">
-            Contact Support
+            Aprende más
           </Button>
         </motion.div>
         <motion.div
