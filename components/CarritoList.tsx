@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,19 +8,27 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { ArrowUpDown, Store, Trash2, Loader2, CreditCard, Banknote } from "lucide-react";
 
 interface Oferta {
   id: string;
   negocio_id: string;
-  precio_ofertado: number;
-  stock_disponible: number;
+  cantidad_ofrecida: number;
+  precio_unitario: number;
+  precio_total: number;
   mensaje: string | null;
+  similitud_score: number | null;
   estado: string;
   created_at: string;
   negocios: {
-    nombre: string;
-    descripcion: string | null;
+    nombre_comercial: string;
+    direccion: string;
+    telefono: string | null;
   };
 }
 
@@ -62,8 +70,14 @@ const estadoLabels: Record<string, string> = {
 export function CarritoList({ refreshTrigger }: CarritoListProps) {
   const [solicitudes, setSolicitudes] = useState<Solicitud[]>([]);
   const [loading, setLoading] = useState(true);
+  const [ordenOfertasPor, setOrdenOfertasPor] = useState<Record<string, string>>({});
+  const [eliminandoId, setEliminandoId] = useState<string | null>(null);
+  const [aceptandoId, setAceptandoId] = useState<string | null>(null);
+  const [dialogPagoAbierto, setDialogPagoAbierto] = useState(false);
+  const [ofertaSeleccionada, setOfertaSeleccionada] = useState<{ ofertaId: string; carritoId: string } | null>(null);
+  const [metodoPago, setMetodoPago] = useState<string>("tarjeta");
 
-  const fetchCarrito = async () => {
+  const fetchCarrito = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch("/api/carrito");
@@ -80,12 +94,99 @@ export function CarritoList({ refreshTrigger }: CarritoListProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchCarrito();
+    // Dependencias intencionalmente limitadas: fetchCarrito es estable, refreshTrigger dispara recarga
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshTrigger]);
+
+  const ordenarOfertas = (ofertas: Oferta[], orden: string) => {
+    const ofertasOrdenadas = [...ofertas];
+    switch (orden) {
+      case "precio_asc":
+        return ofertasOrdenadas.sort((a, b) => a.precio_total - b.precio_total);
+      case "precio_desc":
+        return ofertasOrdenadas.sort((a, b) => b.precio_total - a.precio_total);
+      case "similitud":
+        return ofertasOrdenadas.sort((a, b) => (b.similitud_score || 0) - (a.similitud_score || 0));
+      case "reciente":
+        return ofertasOrdenadas.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      default:
+        return ofertasOrdenadas;
+    }
+  };
+
+  const eliminarItem = async (carritoId: string) => {
+    setEliminandoId(carritoId);
+    try {
+      const response = await fetch(`/api/carrito?id=${carritoId}`, {
+        method: "DELETE",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Error eliminando producto");
+      }
+
+      toast.success("Producto eliminado del carrito");
+      await fetchCarrito();
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "No se pudo eliminar el producto"
+      );
+    } finally {
+      setEliminandoId(null);
+    }
+  };
+
+  const abrirDialogPago = (ofertaId: string, carritoId: string) => {
+    setOfertaSeleccionada({ ofertaId, carritoId });
+    setDialogPagoAbierto(true);
+  };
+
+  const aceptarOferta = async () => {
+    if (!ofertaSeleccionada) return;
+
+    setAceptandoId(ofertaSeleccionada.ofertaId);
+    try {
+      const response = await fetch("/api/carrito/aceptar-oferta", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          oferta_id: ofertaSeleccionada.ofertaId,
+          carrito_id: ofertaSeleccionada.carritoId,
+          metodo_pago: metodoPago,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Error aceptando oferta");
+      }
+
+      toast.success(data.message || "¡Oferta aceptada!");
+      setDialogPagoAbierto(false);
+      setOfertaSeleccionada(null);
+      setMetodoPago("tarjeta");
+      await fetchCarrito();
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error(
+        error instanceof Error ? error.message : "No se pudo aceptar la oferta"
+      );
+    } finally {
+      setAceptandoId(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -140,7 +241,7 @@ export function CarritoList({ refreshTrigger }: CarritoListProps) {
                     key={item.id}
                     className="flex items-start justify-between gap-3 p-3 rounded-lg bg-muted/50"
                   >
-                    <div className="flex-1 space-y-2">
+                    <div className="flex-1 space-y-2 min-w-0">
                       <div className="flex items-start justify-between gap-2">
                         <p className="font-medium text-sm">
                           {item.producto_descripcion}
@@ -150,7 +251,7 @@ export function CarritoList({ refreshTrigger }: CarritoListProps) {
                         </Badge>
                       </div>
                       
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <Badge
                           variant="outline"
                           className={estadoColors[item.estado] || estadoColors.pendiente}
@@ -167,66 +268,148 @@ export function CarritoList({ refreshTrigger }: CarritoListProps) {
                               }
                             </Button>
                           </PopoverTrigger>
-                          <PopoverContent className="w-80" align="end">
+                          <PopoverContent className="w-[400px]" align="start" side="bottom" sideOffset={5}>
                             <div className="space-y-2">
-                              <h4 className="font-semibold text-sm">Ofertas recibidas</h4>
-                              <Separator />
+                              <div className="flex items-center justify-between">
+                                <h4 className="font-semibold text-sm flex items-center gap-1.5">
+                                  <Store className="h-3.5 w-3.5" />
+                                  Ofertas
+                                </h4>
+                                {item.ofertas.length > 0 && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    {item.ofertas.length}
+                                  </Badge>
+                                )}
+                              </div>
+                              <Separator className="my-2" />
+                              
                               {item.ofertas.length > 0 ? (
-                                <ScrollArea className="h-[300px] pr-4">
-                                  <div className="space-y-3">
-                                    {item.ofertas.map((oferta) => (
-                                      <div
-                                        key={oferta.id}
-                                        className="p-3 rounded-lg border bg-card space-y-2"
-                                      >
-                                        <div className="flex items-center justify-between">
-                                          <p className="font-semibold text-sm">
-                                            {oferta.negocios.nombre}
-                                          </p>
-                                          <Badge variant="secondary" className="text-xs">
-                                            ${oferta.precio_ofertado}
-                                          </Badge>
-                                        </div>
-                                        
-                                        {oferta.negocios.descripcion && (
-                                          <p className="text-xs text-muted-foreground">
-                                            {oferta.negocios.descripcion}
-                                          </p>
-                                        )}
-                                        
-                                        <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                          <span>Stock: {oferta.stock_disponible}</span>
-                                          <span>
-                                            {new Date(oferta.created_at).toLocaleDateString("es")}
-                                          </span>
-                                        </div>
-                                        
-                                        {oferta.mensaje && (
-                                          <p className="text-xs border-l-2 border-primary pl-2 italic">
-                                            {oferta.mensaje}
-                                          </p>
-                                        )}
-                                        
-                                        <Button size="sm" className="w-full">
-                                          Seleccionar oferta
-                                        </Button>
-                                      </div>
-                                    ))}
+                                <>
+                                  <div className="flex items-center gap-2">
+                                    <ArrowUpDown className="h-3.5 w-3.5 text-neutral-500" />
+                                    <Select
+                                      value={ordenOfertasPor[item.id] || "precio_asc"}
+                                      onValueChange={(value) => 
+                                        setOrdenOfertasPor({ ...ordenOfertasPor, [item.id]: value })
+                                      }
+                                    >
+                                      <SelectTrigger className="h-7 text-xs">
+                                        <SelectValue placeholder="Ordenar" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="precio_asc">💰 Menor precio</SelectItem>
+                                        <SelectItem value="precio_desc">💰 Mayor precio</SelectItem>
+                                        <SelectItem value="similitud">🎯 Mejor match</SelectItem>
+                                        <SelectItem value="reciente">🕐 Reciente</SelectItem>
+                                      </SelectContent>
+                                    </Select>
                                   </div>
-                                </ScrollArea>
+
+                                  <ScrollArea className="h-[280px] pr-3">
+                                    <div className="space-y-2">
+                                      {ordenarOfertas(item.ofertas, ordenOfertasPor[item.id] || "precio_asc").map((oferta) => (
+                                        <div
+                                          key={oferta.id}
+                                          className="p-3 rounded-lg border bg-card hover:bg-accent/5 transition-colors space-y-2"
+                                        >
+                                          <div className="flex items-start justify-between gap-2">
+                                            <div className="flex-1 min-w-0">
+                                              <p className="font-semibold text-xs truncate">
+                                                {oferta.negocios.nombre_comercial}
+                                              </p>
+                                              <p className="text-[10px] text-muted-foreground truncate">
+                                                {oferta.negocios.direccion}
+                                              </p>
+                                            </div>
+                                            <div className="text-right shrink-0">
+                                              <Badge variant="default" className="text-xs font-bold">
+                                                ${oferta.precio_total.toFixed(2)}
+                                              </Badge>
+                                              <p className="text-[10px] text-muted-foreground mt-0.5">
+                                                ${oferta.precio_unitario.toFixed(2)} c/u
+                                              </p>
+                                            </div>
+                                          </div>
+
+                                          <div className="flex items-center gap-1.5 text-[10px]">
+                                            <div className="bg-muted/50 px-2 py-1 rounded flex-1">
+                                              <span className="text-muted-foreground">Cant:</span>
+                                              <span className="font-medium ml-1">{oferta.cantidad_ofrecida}</span>
+                                            </div>
+                                            {oferta.similitud_score && (
+                                              <div className="bg-blue-50 px-2 py-1 rounded flex-1">
+                                                <span className="text-muted-foreground">Match:</span>
+                                                <span className="font-medium ml-1 text-blue-600">
+                                                  {(oferta.similitud_score * 100).toFixed(0)}%
+                                                </span>
+                                              </div>
+                                            )}
+                                          </div>
+                                          
+                                          {oferta.mensaje && (
+                                            <p className="text-[10px] border-l-2 border-primary pl-2 italic bg-primary/5 py-1 line-clamp-2">
+                                              "{oferta.mensaje}"
+                                            </p>
+                                          )}
+
+                                          <div className="flex items-center justify-between pt-1 border-t">
+                                            <span className="text-[10px] text-muted-foreground">
+                                              {new Date(oferta.created_at).toLocaleDateString("es-MX", {
+                                                day: "2-digit",
+                                                month: "short",
+                                              })}
+                                            </span>
+                                            <Button
+                                              size="sm"
+                                              className="h-6 text-xs px-3 bg-slate-700 hover:bg-gray-700"
+                                              onClick={() => abrirDialogPago(oferta.id, item.id)}
+                                              disabled={
+                                                aceptandoId === oferta.id || 
+                                                ["reservado", "completado"].includes(item.estado) ||
+                                                oferta.estado === "reservada"
+                                              }
+                                            >
+                                              {aceptandoId === oferta.id ? (
+                                                <Loader2 className="h-3 w-3 animate-spin" />
+                                              ) : oferta.estado === "reservada" ? (
+                                                "✓ Aceptada"
+                                              ) : (
+                                                "Seleccionar"
+                                              )}
+                                            </Button>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </ScrollArea>
+                                </>
                               ) : (
                                 <div className="flex flex-col items-center justify-center py-8 text-center">
-                                  <p className="text-sm text-muted-foreground">
+                                  <p className="text-xs text-muted-foreground">
                                     Aún no hay ofertas para este producto.
                                   </p>
-                                  <p className="text-xs text-muted-foreground mt-1">
-                                    Los negocios recibirán una notificación.
+                                  <p className="text-[10px] text-muted-foreground mt-1">
+                                    Los negocios recibirán notificación.
                                   </p>
                                 </div>
                               )}
                             </div>
                           </PopoverContent>
                         </Popover>
+
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => eliminarItem(item.id)}
+                          disabled={eliminandoId === item.id || ["reservado", "completado"].includes(item.estado)}
+                        >
+                          {eliminandoId === item.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-3.5 w-3.5" />
+                          )}
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -236,6 +419,74 @@ export function CarritoList({ refreshTrigger }: CarritoListProps) {
           </Card>
         );
       })}
+
+      {/* Dialog para seleccionar método de pago */}
+      <Dialog open={dialogPagoAbierto} onOpenChange={setDialogPagoAbierto}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Selecciona el método de pago</DialogTitle>
+            <DialogDescription>
+              Elige cómo deseas pagar por este producto
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <RadioGroup value={metodoPago} onValueChange={setMetodoPago}>
+              <div className="flex items-start space-x-3 space-y-0 rounded-lg border p-4 hover:bg-accent cursor-pointer">
+                <RadioGroupItem value="tarjeta" id="tarjeta" />
+                <Label htmlFor="tarjeta" className="cursor-pointer flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <CreditCard className="h-4 w-4" />
+                    <span className="font-medium">Pago con tarjeta</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    El pago se procesa inmediatamente y el producto se reserva automáticamente. El stock se actualiza al instante.
+                  </p>
+                </Label>
+              </div>
+              
+              <div className="flex items-start space-x-3 space-y-0 rounded-lg border p-4 hover:bg-accent cursor-pointer">
+                <RadioGroupItem value="efectivo" id="efectivo" />
+                <Label htmlFor="efectivo" className="cursor-pointer flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Banknote className="h-4 w-4" />
+                    <span className="font-medium">Pago en efectivo</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    El producto se reserva temporalmente. Paga directamente en el negocio. El stock se actualiza al confirmar el pago.
+                  </p>
+                </Label>
+              </div>
+            </RadioGroup>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDialogPagoAbierto(false);
+                setOfertaSeleccionada(null);
+              }}
+              disabled={aceptandoId !== null}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={aceptarOferta}
+              disabled={aceptandoId !== null}
+            >
+              {aceptandoId ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Procesando...
+                </>
+              ) : (
+                <>Confirmar pago</>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

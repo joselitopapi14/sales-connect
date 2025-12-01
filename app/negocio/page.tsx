@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Card,
   CardContent,
@@ -11,76 +12,99 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CrearNegocioEmpty } from "@/components/CrearNegocioEmpty";
+import { ProductosDataTable } from "@/components/ProductosDataTable";
+import { AgregarProductosModal } from "@/components/AgregarProductosModal";
+import { OfertasList } from "@/components/OfertasList";
+import { SolicitudesList } from "@/components/SolicitudesList";
+import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
+import { CATEGORIAS_NEGOCIO } from "@/lib/categorias";
 
 type Negocio = {
   id: string;
-  nombre: string;
-  descripcion: string;
-  categoria: string;
-  ciudad: string;
-  telefono: string;
-  email: string;
-  calificacion: number;
-  servicios: string[];
-  horario: string;
-};
-
-type Oferta = {
-  id: string;
-  solicitudTitulo: string;
-  mensaje: string;
-  precio: number;
-  estado: "enviada" | "aceptada" | "rechazada";
-  fechaCreacion: string;
+  nombre_comercial: string;
+  direccion: string;
+  telefono: string | null;
+  categoria: string | null;
+  activo: boolean;
+  propietario_id: string;
+  created_at: string;
+  updated_at: string;
 };
 
 export default function NegocioPage() {
-  const [negocio, setNegocio] = useState<Negocio>({
-    id: "neg1",
-    nombre: "Mi Negocio",
-    descripcion: "Servicios profesionales de calidad",
-    categoria: "Servicios Generales",
-    ciudad: "Ciudad de México",
-    telefono: "+52 55 1234 5678",
-    email: "contacto@minegocio.com",
-    calificacion: 4.5,
-    servicios: ["Servicio 1", "Servicio 2", "Servicio 3"],
-    horario: "Lun-Vie 9:00-18:00",
-  });
-
-  const [ofertas] = useState<Oferta[]>([
-    {
-      id: "1",
-      solicitudTitulo: "Necesito servicio de plomería",
-      mensaje: "Puedo ayudarle con su solicitud de inmediato",
-      precio: 1500,
-      estado: "aceptada",
-      fechaCreacion: "2024-01-15",
-    },
-    {
-      id: "2",
-      solicitudTitulo: "Reparación de laptop",
-      mensaje: "Tengo experiencia en este tipo de reparaciones",
-      precio: 800,
-      estado: "enviada",
-      fechaCreacion: "2024-01-14",
-    },
-  ]);
-
+  const [loading, setLoading] = useState(true);
+  const [negocio, setNegocio] = useState<Negocio | null>(null);
   const [editando, setEditando] = useState(false);
-  const [datosEditados, setDatosEditados] = useState<Negocio>(negocio);
+  const [datosEditados, setDatosEditados] = useState<Negocio | null>(null);
+  const [guardando, setGuardando] = useState(false);
+  const [modalProductosOpen, setModalProductosOpen] = useState(false);
+  const [refreshProductos, setRefreshProductos] = useState(0);
 
-  const estadoColors = {
-    enviada: "bg-blue-100 text-blue-800 border-blue-300",
-    aceptada: "bg-green-100 text-green-800 border-green-300",
-    rechazada: "bg-red-100 text-red-800 border-red-300",
-  };
+  const cargarNegocio = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await fetch("/api/negocios");
+      const data = await response.json();
 
-  const handleGuardarCambios = () => {
-    setNegocio(datosEditados);
-    setEditando(false);
+      if (!response.ok) {
+        throw new Error(data.error || "Error cargando negocio");
+      }
+
+      // Tomar el primer negocio (usuario solo puede tener uno)
+      if (data.negocios && data.negocios.length > 0) {
+        setNegocio(data.negocios[0]);
+        setDatosEditados(data.negocios[0]);
+      } else {
+        setNegocio(null);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error(error instanceof Error ? error.message : "Error cargando negocio");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    cargarNegocio();
+  }, [cargarNegocio]);
+
+  const handleGuardarCambios = async () => {
+    if (!datosEditados || !negocio) return;
+
+    try {
+      setGuardando(true);
+      const response = await fetch(`/api/negocios/${negocio.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nombre_comercial: datosEditados.nombre_comercial,
+          direccion: datosEditados.direccion,
+          telefono: datosEditados.telefono,
+          categoria: datosEditados.categoria,
+          activo: datosEditados.activo,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Error actualizando negocio");
+      }
+
+      setNegocio(data.negocio);
+      setDatosEditados(data.negocio);
+      setEditando(false);
+      toast.success("Negocio actualizado exitosamente");
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error(error instanceof Error ? error.message : "Error actualizando negocio");
+    } finally {
+      setGuardando(false);
+    }
   };
 
   const handleCancelarEdicion = () => {
@@ -88,17 +112,32 @@ export default function NegocioPage() {
     setEditando(false);
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Si no hay negocio, mostrar Empty
+  if (!negocio) {
+    return <CrearNegocioEmpty onNegocioCreado={cargarNegocio} />;
+  }
+
   return (
     <div className="min-h-screen mt-5 bg-linear-to-b from-white to-gray-50 pt-24 pb-16">
       <div className="container mx-auto px-4 max-w-6xl">
         <h1 className="text-4xl font-bold text-slate-700 mb-2">Mi Negocio</h1>
         <p className="text-neutral-600 mb-8">
-          Administra tu perfil y las ofertas a tus clientes
+          Administra tu perfil, productos y ofertas
         </p>
 
         <Tabs defaultValue="perfil" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 max-w-md">
+          <TabsList className="grid w-full grid-cols-4 max-w-3xl">
             <TabsTrigger value="perfil">Perfil del Negocio</TabsTrigger>
+            <TabsTrigger value="productos">Mis Productos</TabsTrigger>
+            <TabsTrigger value="solicitudes">Solicitudes</TabsTrigger>
             <TabsTrigger value="ofertas">Mis Ofertas</TabsTrigger>
           </TabsList>
 
@@ -126,13 +165,22 @@ export default function NegocioPage() {
                     <Button
                       onClick={handleGuardarCambios}
                       className="bg-slate-700 hover:bg-gray-700"
+                      disabled={guardando}
                     >
-                      Guardar
+                      {guardando ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Guardando...
+                        </>
+                      ) : (
+                        "Guardar"
+                      )}
                     </Button>
                     <Button
                       onClick={handleCancelarEdicion}
                       variant="outline"
                       className="border-slate-300"
+                      disabled={guardando}
                     >
                       Cancelar
                     </Button>
@@ -140,212 +188,175 @@ export default function NegocioPage() {
                 )}
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                      <label htmlFor="nombreNegocio" className="block text-sm font-medium text-slate-700 mb-2">
-                        Nombre del Negocio
-                      </label>
-                      <Input
-                        id="nombreNegocio"
-                        value={editando ? datosEditados.nombre : negocio.nombre}
-                        onChange={(e) =>
-                          setDatosEditados({ ...datosEditados, nombre: e.target.value })
-                        }
-                        disabled={!editando}
-                        className="border-slate-300"
-                      />
-                  </div>
-                  <div>
-                      <label htmlFor="categoria" className="block text-sm font-medium text-slate-700 mb-2">
-                        Categoría
-                      </label>
-                      <Input
-                        id="categoria"
-                        value={editando ? datosEditados.categoria : negocio.categoria}
-                        onChange={(e) =>
-                          setDatosEditados({
-                            ...datosEditados,
-                            categoria: e.target.value,
-                          })
-                        }
-                        disabled={!editando}
-                        className="border-slate-300"
-                      />
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="nombreComercial">Nombre del Negocio</Label>
+                  <Input
+                    id="nombreComercial"
+                    value={editando ? datosEditados?.nombre_comercial : negocio.nombre_comercial}
+                    onChange={(e) =>
+                      datosEditados &&
+                      setDatosEditados({ ...datosEditados, nombre_comercial: e.target.value })
+                    }
+                    disabled={!editando}
+                    className="border-slate-300"
+                  />
                 </div>
 
-                <div>
-                    <label htmlFor="descripcion" className="block text-sm font-medium text-slate-700 mb-2">
-                      Descripción
-                    </label>
-                    <Textarea
-                      id="descripcion"
-                      value={editando ? datosEditados.descripcion : negocio.descripcion}
+                <div className="space-y-2">
+                  <Label htmlFor="direccion">Dirección</Label>
+                  <Input
+                    id="direccion"
+                    value={
+                      editando ? datosEditados?.direccion : negocio.direccion
+                    }
+                    onChange={(e) =>
+                      datosEditados &&
+                      setDatosEditados({
+                        ...datosEditados,
+                        direccion: e.target.value,
+                      })
+                    }
+                    disabled={!editando}
+                    className="border-slate-300"
+                    placeholder="Calle Principal #123, Colonia Centro"
+                  />
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="telefono">Teléfono</Label>
+                    <Input
+                      id="telefono"
+                      value={
+                        editando
+                          ? datosEditados?.telefono || ""
+                          : negocio.telefono || ""
+                      }
                       onChange={(e) =>
+                        datosEditados &&
                         setDatosEditados({
                           ...datosEditados,
-                          descripcion: e.target.value,
+                          telefono: e.target.value,
                         })
                       }
                       disabled={!editando}
-                      rows={3}
                       className="border-slate-300"
+                      placeholder="+52 55 1234 5678"
                     />
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                      <label htmlFor="ciudad" className="block text-sm font-medium text-slate-700 mb-2">
-                        Ciudad
-                      </label>
-                      <Input
-                        id="ciudad"
-                        value={editando ? datosEditados.ciudad : negocio.ciudad}
-                        onChange={(e) =>
-                          setDatosEditados({ ...datosEditados, ciudad: e.target.value })
-                        }
-                        disabled={!editando}
-                        className="border-slate-300"
-                      />
                   </div>
-                  <div>
-                      <label htmlFor="telefono" className="block text-sm font-medium text-slate-700 mb-2">
-                        Teléfono
-                      </label>
-                      <Input
-                        id="telefono"
-                        value={editando ? datosEditados.telefono : negocio.telefono}
-                        onChange={(e) =>
-                          setDatosEditados({
-                            ...datosEditados,
-                            telefono: e.target.value,
-                          })
-                        }
-                        disabled={!editando}
-                        className="border-slate-300"
-                      />
+                  <div className="space-y-2">
+                    <Label htmlFor="categoria">Categoría</Label>
+                    <Select
+                      value={
+                        editando
+                          ? datosEditados?.categoria || ""
+                          : negocio.categoria || ""
+                      }
+                      onValueChange={(value) =>
+                        datosEditados &&
+                        setDatosEditados({
+                          ...datosEditados,
+                          categoria: value,
+                        })
+                      }
+                      disabled={!editando}
+                    >
+                      <SelectTrigger className="border-slate-300">
+                        <SelectValue placeholder="Selecciona una categoría" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CATEGORIAS_NEGOCIO.map((cat) => (
+                          <SelectItem key={cat.value} value={cat.value}>
+                            {cat.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                      <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">
-                        Email
-                      </label>
-                      <Input
-                        id="email"
-                        value={editando ? datosEditados.email : negocio.email}
-                        onChange={(e) =>
-                          setDatosEditados({ ...datosEditados, email: e.target.value })
-                        }
-                        disabled={!editando}
-                        type="email"
-                        className="border-slate-300"
-                      />
-                  </div>
-                  <div>
-                      <label htmlFor="horario" className="block text-sm font-medium text-slate-700 mb-2">
-                        Horario
-                      </label>
-                      <Input
-                        id="horario"
-                        value={editando ? datosEditados.horario : negocio.horario}
-                        onChange={(e) =>
-                          setDatosEditados({ ...datosEditados, horario: e.target.value })
-                        }
-                        disabled={!editando}
-                        className="border-slate-300"
-                      />
-                  </div>
-                </div>
-
-                <div>
-                  <label htmlFor="calificacion" className="block text-sm font-medium text-slate-700 mb-2">
-                    Calificación
-                  </label>
+                <div className="space-y-2">
+                  <Label>Estado</Label>
                   <div className="flex items-center gap-2">
-                    <span className="text-2xl font-bold text-slate-700">
-                      {negocio.calificacion}
+                    <div
+                      className={`h-3 w-3 rounded-full ${negocio.activo ? "bg-green-500" : "bg-red-500"
+                        }`}
+                    />
+                    <span className="text-sm text-neutral-600">
+                      {negocio.activo ? "Activo" : "Inactivo"}
                     </span>
-                    <span className="text-yellow-500">★★★★★</span>
                   </div>
+                </div>
+
+                <div className="pt-4 border-t">
+                  <p className="text-xs text-neutral-500">
+                    Creado: {new Date(negocio.created_at).toLocaleDateString()}
+                  </p>
+                  <p className="text-xs text-neutral-500">
+                    Última actualización:{" "}
+                    {new Date(negocio.updated_at).toLocaleDateString()}
+                  </p>
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
 
+          <TabsContent value="productos" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Mis Productos</CardTitle>
+                <CardDescription>
+                  Administra el catálogo de productos de tu negocio
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ProductosDataTable
+                  key={refreshProductos}
+                  negocioId={negocio.id}
+                  onAgregarProductos={() => setModalProductosOpen(true)}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="solicitudes" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Solicitudes de Clientes</CardTitle>
+                <CardDescription>
+                  Solicitudes que coinciden con tu catálogo (match ≥ 70%)
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <SolicitudesList negocioId={negocio.id} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="ofertas" className="space-y-6">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-2xl font-bold text-slate-700">Mis Ofertas</h2>
-                <p className="text-neutral-600">
+            <Card>
+              <CardHeader>
+                <CardTitle>Mis Ofertas</CardTitle>
+                <CardDescription>
                   Gestiona las ofertas que has enviado a los clientes
-                </p>
-              </div>
-              <Button className="bg-slate-700 hover:bg-gray-700 text-white">
-                Nueva Oferta
-              </Button>
-            </div>
-
-            <div className="grid gap-6 md:grid-cols-2">
-              {ofertas.map((oferta) => (
-                <Card
-                  key={oferta.id}
-                  className="border-slate-200 hover:shadow-xl transition-shadow duration-300"
-                >
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <CardTitle className="text-slate-700 text-lg">
-                        {oferta.solicitudTitulo}
-                      </CardTitle>
-                      <Badge
-                        variant="outline"
-                        className={estadoColors[oferta.estado]}
-                      >
-                        {oferta.estado.charAt(0).toUpperCase() +
-                          oferta.estado.slice(1)}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-neutral-600 text-sm mb-4">
-                      {oferta.mensaje}
-                    </p>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-neutral-500">Precio:</span>
-                        <span className="text-lg font-bold text-slate-700">
-                          ${oferta.precio.toLocaleString()}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between text-xs text-neutral-500">
-                        <span>Fecha:</span>
-                        <span>{oferta.fechaCreacion}</span>
-                      </div>
-                    </div>
-                    <Button
-                      variant="outline"
-                      className="w-full mt-4 border-slate-300 text-slate-700 hover:bg-slate-50"
-                    >
-                      Ver detalles
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            {ofertas.length === 0 && (
-              <div className="text-center py-16">
-                <p className="text-neutral-500 text-lg mb-4">
-                  No has enviado ofertas aún
-                </p>
-                <Button className="bg-slate-700 hover:bg-gray-700 text-white">
-                  Explorar solicitudes
-                </Button>
-              </div>
-            )}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <OfertasList negocioId={negocio.id} />
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
+
+        <AgregarProductosModal
+          open={modalProductosOpen}
+          onOpenChange={setModalProductosOpen}
+          negocioId={negocio.id}
+          onProductosAgregados={() => {
+            setRefreshProductos((prev) => prev + 1);
+            toast.success("Productos agregados exitosamente");
+          }}
+        />
       </div>
     </div>
   );
