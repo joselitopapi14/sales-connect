@@ -1,42 +1,4 @@
--- Rollback de migración 012: Revertir sistema de cerrar carrito
-
--- 1. Eliminar función cerrar_carrito (si existe)
-drop function if exists cerrar_carrito(uuid);
-
--- 2. Eliminar tabla domicilios y sus políticas (solo si existe)
-do $$ 
-begin
-  if exists (select 1 from pg_tables where schemaname = 'public' and tablename = 'domicilios') then
-    drop policy if exists "Usuarios ven sus propios domicilios" on domicilios;
-    drop policy if exists "Domiciliarios ven domicilios asignados" on domicilios;
-    drop trigger if exists set_updated_at_domicilios on domicilios;
-    drop table if exists domicilios;
-  end if;
-end $$;
-
--- 3. Eliminar índice de carritos cerrados
-drop index if exists idx_carrito_cerrado;
-
--- 4. Migrar carritos con estados 'cerrado' o 'en_domicilio' a 'con_ofertas'
--- (antes de eliminar el constraint)
-update carrito
-set estado = 'con_ofertas'
-where estado in ('cerrado', 'en_domicilio');
-
--- 5. Eliminar columnas agregadas
-alter table carrito drop column if exists cerrado_at;
-alter table carrito drop column if exists cerrado_por;
-
--- 6. Restaurar constraint original de carrito (sin 'cerrado' ni 'en_domicilio')
-alter table carrito 
-  drop constraint if exists carrito_estado_check;
-
-alter table carrito 
-  add constraint carrito_estado_check 
-  check (estado in ('pendiente', 'con_ofertas', 'reservado', 'completado', 'cancelado'));
-
--- 7. Restaurar función obtener_solicitudes_con_matches a la versión anterior
--- (sin filtrado de carritos cerrados)
+-- Actualizar función para mostrar solicitudes incluso sin matches perfectos
 drop function if exists obtener_solicitudes_con_matches(uuid, float, int);
 
 create or replace function obtener_solicitudes_con_matches(
@@ -62,7 +24,7 @@ security definer
 set search_path = public
 as $$
 begin
-  -- VALIDACIÓN DE SEGURIDAD: Verificar que el negocio pertenece al usuario
+  -- VALIDACIÓN DE SEGURIDAD
   if not exists (
     select 1 from negocios
     where id = p_negocio_id
@@ -87,6 +49,7 @@ begin
     where nc.negocio_id = p_negocio_id
       and nc.activo = true
       and nc.stock_disponible > 0
+      and cm.embedding is not null  -- Solo productos con embedding válido
   ),
   solicitudes_recientes as (
     select 
@@ -102,6 +65,12 @@ begin
     from carrito c
     inner join usuarios u on u.id = c.user_id
     where c.estado in ('pendiente', 'con_ofertas')
+      and c.embedding is not null  -- Solo solicitudes con embedding válido
+      -- Verificar que el producto existe en catalogo_maestro
+      and exists (
+        select 1 from catalogo_maestro cm
+        where (c.embedding <=> cm.embedding) < 0.5  -- Similitud > 50% con algún producto del catálogo
+      )
     order by c.created_at desc
     limit p_limit
   ),
@@ -176,5 +145,4 @@ begin
 end;
 $$;
 
--- 8. Comentario
-comment on function obtener_solicitudes_con_matches(uuid, float, int) is 'Función restaurada sin filtrado de carritos cerrados';
+comment on function obtener_solicitudes_con_matches(uuid, float, int) is 'Obtiene solicitudes con matches. Solo muestra solicitudes que tienen embedding válido y existen en catalogo_maestro';

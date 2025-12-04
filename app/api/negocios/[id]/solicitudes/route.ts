@@ -35,14 +35,14 @@ export async function GET(
     // Usar función optimizada que hace todo en PostgreSQL
     console.log("Llamando a obtener_solicitudes_con_matches con:", {
       p_negocio_id: id,
-      p_threshold: 0.8,
+      p_threshold: 0.7,
       p_limit: 50
     });
     
     const { data: solicitudesData, error: solicitudesError } = await supabase
       .rpc('obtener_solicitudes_con_matches', {
         p_negocio_id: id,
-        p_threshold: 0.8,
+        p_threshold: 0.7,
         p_limit: 50
       });
 
