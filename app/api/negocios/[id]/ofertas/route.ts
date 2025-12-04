@@ -65,11 +65,14 @@ export async function GET(
     // Obtener información de usuarios por separado
     const ofertasConUsuarios = await Promise.all(
       (ofertas || []).map(async (oferta) => {
-        if (!oferta.carrito?.user_id) {
+        // biome-ignore lint/suspicious/noExplicitAny: Supabase types are too complex
+        const carritoData = oferta.carrito as any;
+        
+        if (!carritoData?.user_id) {
           return {
             ...oferta,
             carrito: {
-              ...oferta.carrito,
+              ...carritoData,
               usuarios: null,
             },
           };
@@ -78,13 +81,13 @@ export async function GET(
         const { data: usuario } = await supabase
           .from("usuarios")
           .select("nombre_completo, email")
-          .eq("id", oferta.carrito.user_id)
+          .eq("id", carritoData.user_id)
           .single();
 
         return {
           ...oferta,
           carrito: {
-            ...oferta.carrito,
+            ...carritoData,
             usuarios: usuario || null,
           },
         };
