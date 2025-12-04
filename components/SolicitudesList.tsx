@@ -23,7 +23,7 @@ type Match = {
   producto_id: string;
   producto_nombre: string;
   producto_descripcion: string;
-  precio_unitario: number;
+  precio_negocio: number;
   stock_disponible: number;
   similitud: number;
 };
@@ -88,7 +88,7 @@ export function SolicitudesList({ negocioId }: SolicitudesListProps) {
     setSelectedSolicitud(solicitud);
     setSelectedMatch(match);
     setCantidadOfrecida(solicitud.cantidad.toString());
-    setPrecioUnitario(match.precio_unitario.toString());
+    setPrecioUnitario(match.precio_negocio.toString());
     setMensaje("");
     setModalOpen(true);
   };
@@ -224,7 +224,7 @@ export function SolicitudesList({ negocioId }: SolicitudesListProps) {
                         <div className="flex-1">
                           <p className="text-sm font-medium">{match.producto_nombre}</p>
                           <p className="text-xs text-neutral-500">
-                            Stock: {match.stock_disponible} | ${match.precio_unitario}
+                            Stock: {match.stock_disponible} | ${match.precio_negocio}
                           </p>
                           <div className="flex items-center gap-2 mt-1">
                             <div className="w-full bg-gray-200 rounded-full h-1.5 max-w-[100px]">

@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { Loader2, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
 type Oferta = {
@@ -44,6 +45,7 @@ const estadoColors: Record<string, string> = {
 export function OfertasList({ negocioId }: OfertasListProps) {
   const [ofertas, setOfertas] = useState<Oferta[]>([]);
   const [loading, setLoading] = useState(true);
+  const [completandoId, setCompletandoId] = useState<string | null>(null);
 
   const cargarOfertas = useCallback(async () => {
     try {
@@ -63,6 +65,34 @@ export function OfertasList({ negocioId }: OfertasListProps) {
       setLoading(false);
     }
   }, [negocioId]);
+
+  const completarCompra = async (ofertaId: string) => {
+    setCompletandoId(ofertaId);
+    try {
+      const response = await fetch(
+        `/api/negocios/${negocioId}/ofertas/${ofertaId}/completar`,
+        {
+          method: "POST",
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Error completando compra");
+      }
+
+      toast.success(data.message || "¡Compra completada exitosamente!");
+      await cargarOfertas();
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Error completando compra"
+      );
+    } finally {
+      setCompletandoId(null);
+    }
+  };
 
   useEffect(() => {
     if (negocioId) {
@@ -147,6 +177,26 @@ export function OfertasList({ negocioId }: OfertasListProps) {
                   <span>Precio unitario: ${oferta.precio_unitario.toLocaleString("es-MX")}</span>
                   <span>{new Date(oferta.created_at).toLocaleDateString("es-MX")}</span>
                 </div>
+
+                {oferta.estado === "reservada" && (
+                  <Button
+                    className="w-full mt-2"
+                    onClick={() => completarCompra(oferta.id)}
+                    disabled={completandoId === oferta.id}
+                  >
+                    {completandoId === oferta.id ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        Completando...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="h-4 w-4 mr-2" />
+                        Completar compra
+                      </>
+                    )}
+                  </Button>
+                )}
 
                 {oferta.similitud_score && (
                   <div className="pt-2">
