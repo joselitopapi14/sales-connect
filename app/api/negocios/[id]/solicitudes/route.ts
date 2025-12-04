@@ -32,198 +32,73 @@ export async function GET(
       );
     }
 
-    // Obtener productos del negocio con embeddings del catálogo maestro
-    const { data: productosNegocio, error: productosError } = await supabase
-      .from("negocio_catalogo")
-      .select(`
-        id,
-        producto_id,
-        precio_negocio,
-        stock_disponible,
-        catalogo_maestro:producto_id (
-          id,
-          nombre,
-          descripcion,
-          embedding
-        )
-      `)
-      .eq("negocio_id", id)
-      .eq("activo", true)
-      .gt("stock_disponible", 0);
-
-    if (productosError) {
-      console.error("Error obteniendo productos del negocio:", productosError);
-      return NextResponse.json(
-        { error: "Error obteniendo productos" },
-        { status: 500 }
-      );
-    }
-
-    if (!productosNegocio || productosNegocio.length === 0) {
-      return NextResponse.json({
-        success: true,
-        solicitudes: [],
-        message: "El negocio no tiene productos activos con stock",
+    // Usar función optimizada que hace todo en PostgreSQL
+    console.log("Llamando a obtener_solicitudes_con_matches con:", {
+      p_negocio_id: id,
+      p_threshold: 0.7,
+      p_limit: 50
+    });
+    
+    const { data: solicitudesData, error: solicitudesError } = await supabase
+      .rpc('obtener_solicitudes_con_matches', {
+        p_negocio_id: id,
+        p_threshold: 0.7,
+        p_limit: 50
       });
-    }
-
-    // Obtener solicitudes pendientes o con ofertas
-    const { data: solicitudes, error: solicitudesError } = await supabase
-      .from("carrito")
-      .select("*")
-      .in("estado", ["pendiente", "con_ofertas"])
-      .order("created_at", { ascending: false });
 
     if (solicitudesError) {
-      console.error("Error obteniendo solicitudes:", solicitudesError);
+      console.error("Error obteniendo solicitudes:", {
+        error: solicitudesError,
+        message: solicitudesError.message,
+        details: solicitudesError.details,
+        hint: solicitudesError.hint,
+        code: solicitudesError.code,
+      });
       return NextResponse.json(
-        { error: "Error obteniendo solicitudes" },
+        { 
+          error: "Error obteniendo solicitudes",
+          detalles: solicitudesError.message
+        },
         { status: 500 }
       );
     }
+    
+    console.log("Datos recibidos:", solicitudesData?.length, "solicitudes");
 
-    console.log("Solicitudes encontradas:", solicitudes?.length || 0);
-    if (solicitudes && solicitudes.length > 0) {
-      console.log("Ejemplo de solicitud:", JSON.stringify(solicitudes[0], null, 2));
-    }
-
-    if (!solicitudes || solicitudes.length === 0) {
-      return NextResponse.json({
-        success: true,
-        solicitudes: [],
-        message: "No hay solicitudes disponibles",
-      });
-    }
-
-    // Calcular similitud entre solicitudes y productos del negocio
-    const solicitudesConMatch: Array<{
-      id: string;
-      producto_descripcion: string;
-      cantidad: number;
-      embedding: number[];
-      estado: string;
-      created_at: string;
-      user_id: string;
-      usuarios: { id: string; nombre_completo: string | null; email: string } | null;
-      matches: Array<{
-        negocio_catalogo_id: string;
-        producto_id: string;
-        producto_nombre: string;
-        producto_descripcion: string;
-        precio_unitario: number;
-        stock_disponible: number;
-        similitud: number;
-      }>;
+    // Transformar los datos al formato esperado por el frontend
+    const solicitudes = (solicitudesData || []).map((row: {
+      solicitud_id: string;
+      solicitud_descripcion: string;
+      solicitud_cantidad: number;
+      solicitud_estado: string;
+      solicitud_created_at: string;
+      solicitud_user_id: string;
+      usuario_nombre: string | null;
+      usuario_email: string;
+      matches: unknown;
       oferta_enviada: boolean;
       oferta_estado: string | null;
-    }> = [];
-
-    console.log(`Procesando ${solicitudes.length} solicitudes contra ${productosNegocio.length} productos del negocio`);
-
-    for (const solicitud of solicitudes) {
-      const matches: Array<{
-        negocio_catalogo_id: string;
-        producto_id: string;
-        producto_nombre: string;
-        producto_descripcion: string;
-        precio_unitario: number;
-        stock_disponible: number;
-        similitud: number;
-      }> = [];
-
-      for (const productoNegocio of productosNegocio) {
-        // biome-ignore lint/suspicious/noExplicitAny: Supabase relation types are complex
-        const catalogoMaestro = productoNegocio.catalogo_maestro as any as {
-          id: string;
-          nombre: string;
-          descripcion: string;
-          embedding: number[];
-        } | null;
-        
-        if (!catalogoMaestro?.embedding || !solicitud.embedding) {
-          console.log("Skipping - missing embedding");
-          continue;
-        }
-
-        // Calcular similitud coseno manualmente
-        // similitud = 1 - distancia_coseno
-        // En pgvector: <=> es el operador de distancia coseno
-        // Pero como ya tenemos los embeddings, calculamos en el servidor
-        
-        // Hacer query directa con el operador de distancia
-        const { data: similitudResult, error: similitudError } = await supabase.rpc(
-          "calcular_similitud_coseno",
-          {
-            embedding_a: solicitud.embedding,
-            embedding_b: catalogoMaestro.embedding,
-          }
-        );
-
-        if (similitudError) {
-          console.error("Error calculando similitud:", similitudError);
-          continue;
-        }
-
-        const similitud = similitudResult as number;
-
-        console.log(`Similitud calculada: ${similitud.toFixed(3)} entre solicitud "${solicitud.producto_descripcion}" y producto "${catalogoMaestro.nombre}"`);
-
-        // Verificar si cumple el threshold de 70%
-        if (similitud >= 0.7) {
-          console.log(`✓ Match encontrado! ${(similitud * 100).toFixed(1)}%`);
-          matches.push({
-            negocio_catalogo_id: productoNegocio.id,
-            producto_id: catalogoMaestro.id,
-            producto_nombre: catalogoMaestro.nombre,
-            producto_descripcion: catalogoMaestro.descripcion,
-            precio_unitario: productoNegocio.precio_negocio,
-            stock_disponible: productoNegocio.stock_disponible,
-            similitud: similitud,
-          });
-        }
-      }
-
-      console.log(`Solicitud "${solicitud.producto_descripcion}" tiene ${matches.length} matches`);
-
-      // Si hay al menos un match, agregar la solicitud
-      if (matches.length > 0) {
-        // Obtener datos del usuario
-        const { data: usuario } = await supabase
-          .from("usuarios")
-          .select("id, nombre_completo, email")
-          .eq("id", solicitud.user_id)
-          .single();
-
-        // Verificar si ya envió oferta
-        const { data: ofertaExistente } = await supabase
-          .from("ofertas")
-          .select("id, estado")
-          .eq("carrito_id", solicitud.id)
-          .eq("negocio_id", id)
-          .single();
-
-        solicitudesConMatch.push({
-          id: solicitud.id,
-          producto_descripcion: solicitud.producto_descripcion,
-          cantidad: solicitud.cantidad,
-          embedding: solicitud.embedding,
-          estado: solicitud.estado,
-          created_at: solicitud.created_at,
-          user_id: solicitud.user_id,
-          usuarios: usuario || null,
-          matches: matches.sort((a, b) => b.similitud - a.similitud),
-          oferta_enviada: !!ofertaExistente,
-          oferta_estado: ofertaExistente?.estado || null,
-        });
-      }
-    }
-
-    console.log(`Total de solicitudes con match: ${solicitudesConMatch.length}`);
+    }) => ({
+      id: row.solicitud_id,
+      producto_descripcion: row.solicitud_descripcion,
+      cantidad: row.solicitud_cantidad,
+      estado: row.solicitud_estado,
+      created_at: row.solicitud_created_at,
+      user_id: row.solicitud_user_id,
+      usuarios: {
+        id: row.solicitud_user_id,
+        nombre_completo: row.usuario_nombre,
+        email: row.usuario_email,
+      },
+      matches: row.matches,
+      oferta_enviada: row.oferta_enviada,
+      oferta_estado: row.oferta_estado,
+    }));
 
     return NextResponse.json({
       success: true,
-      solicitudes: solicitudesConMatch,
-      total: solicitudesConMatch.length,
+      solicitudes: solicitudes,
+      total: solicitudes.length,
     });
   } catch (error) {
     console.error("Error:", error);

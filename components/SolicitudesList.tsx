@@ -116,24 +116,36 @@ export function SolicitudesList({ negocioId }: SolicitudesListProps) {
 
     try {
       setEnviando(true);
+      
+      const requestBody = {
+        negocio_catalogo_id: selectedMatch.negocio_catalogo_id,
+        cantidad_ofrecida: cantidad,
+        precio_unitario: precio,
+        mensaje: mensaje.trim() || null,
+        similitud_score: selectedMatch.similitud,
+      };
+      
+      console.log("=== ENVIANDO OFERTA ===");
+      console.log("URL:", `/api/negocios/${negocioId}/solicitudes/${selectedSolicitud.id}/ofertar`);
+      console.log("Body:", requestBody);
+      
       const response = await fetch(
         `/api/negocios/${negocioId}/solicitudes/${selectedSolicitud.id}/ofertar`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            negocio_catalogo_id: selectedMatch.negocio_catalogo_id,
-            cantidad_ofrecida: cantidad,
-            precio_unitario: precio,
-            mensaje: mensaje.trim() || null,
-            similitud_score: selectedMatch.similitud,
-          }),
+          body: JSON.stringify(requestBody),
         }
       );
 
+      console.log("Response status:", response.status);
+      console.log("Response ok:", response.ok);
+      
       const data = await response.json();
+      console.log("Response data:", data);
 
       if (!response.ok) {
+        console.error("❌ Error response:", data);
         throw new Error(data.error || "Error enviando oferta");
       }
 
@@ -141,7 +153,7 @@ export function SolicitudesList({ negocioId }: SolicitudesListProps) {
       setModalOpen(false);
       cargarSolicitudes(); // Recargar para actualizar estados
     } catch (error) {
-      console.error("Error:", error);
+      console.error("❌ Error completo:", error);
       toast.error(error instanceof Error ? error.message : "Error enviando oferta");
     } finally {
       setEnviando(false);
