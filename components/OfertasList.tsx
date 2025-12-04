@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, CheckCircle2 } from "lucide-react";
+import { Loader2, CheckCircle2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 type Oferta = {
@@ -44,8 +44,9 @@ const estadoColors: Record<string, string> = {
 
 export function OfertasList({ negocioId }: OfertasListProps) {
   const [ofertas, setOfertas] = useState<Oferta[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [completandoId, setCompletandoId] = useState<string | null>(null);
+  const [ofertasCargadas, setOfertasCargadas] = useState(false);
 
   const cargarOfertas = useCallback(async () => {
     try {
@@ -58,6 +59,7 @@ export function OfertasList({ negocioId }: OfertasListProps) {
       }
 
       setOfertas(data.ofertas || []);
+      setOfertasCargadas(true);
     } catch (error) {
       console.error("Error:", error);
       toast.error(error instanceof Error ? error.message : "Error cargando ofertas");
@@ -94,11 +96,28 @@ export function OfertasList({ negocioId }: OfertasListProps) {
     }
   };
 
-  useEffect(() => {
-    if (negocioId) {
-      cargarOfertas();
-    }
-  }, [negocioId, cargarOfertas]);
+  if (!ofertasCargadas) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-neutral-500 text-lg mb-4">
+          Haz clic en el botón para ver tus ofertas
+        </p>
+        <Button onClick={cargarOfertas} disabled={loading}>
+          {loading ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              Cargando...
+            </>
+          ) : (
+            <>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Ver ofertas
+            </>
+          )}
+        </Button>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -114,18 +133,46 @@ export function OfertasList({ negocioId }: OfertasListProps) {
         <p className="text-neutral-500 text-lg mb-2">
           No has enviado ofertas aún
         </p>
-        <p className="text-sm text-neutral-400">
+        <p className="text-sm text-neutral-400 mb-4">
           Las ofertas aparecerán aquí cuando los usuarios soliciten productos que coincidan con tu catálogo
         </p>
+        <Button onClick={cargarOfertas} variant="outline" disabled={loading}>
+          {loading ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              Actualizando...
+            </>
+          ) : (
+            <>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Actualizar
+            </>
+          )}
+        </Button>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-neutral-500">
-        {ofertas.length} oferta{ofertas.length !== 1 ? "s" : ""} enviada{ofertas.length !== 1 ? "s" : ""}
-      </p>
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-neutral-500">
+          {ofertas.length} oferta{ofertas.length !== 1 ? "s" : ""} enviada{ofertas.length !== 1 ? "s" : ""}
+        </p>
+        <Button onClick={cargarOfertas} variant="outline" size="sm" disabled={loading}>
+          {loading ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              Actualizando...
+            </>
+          ) : (
+            <>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Actualizar
+            </>
+          )}
+        </Button>
+      </div>
 
       <div className="grid gap-4 md:grid-cols-2">
         {ofertas.map((oferta) => (
