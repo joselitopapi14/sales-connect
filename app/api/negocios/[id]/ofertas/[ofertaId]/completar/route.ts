@@ -84,19 +84,17 @@ export async function POST(
 
     console.log("✓ Oferta actualizada a completada");
 
-    // Actualizar carrito a completado
-    const { error: updateCarritoError } = await supabase
-      .from("carrito")
-      .update({
-        estado: "completado",
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", oferta.carrito_id);
+    // Actualizar carrito a completado usando función SQL que bypasea RLS
+    const { data: updateResult, error: updateCarritoError } = await supabase
+      .rpc('completar_carrito_desde_negocio', {
+        p_carrito_id: oferta.carrito_id,
+        p_negocio_id: negocioId
+      });
 
-    if (updateCarritoError) {
+    if (updateCarritoError || !updateResult) {
       console.error("❌ Error actualizando carrito:", updateCarritoError);
       return NextResponse.json(
-        { error: "Error actualizando solicitud" },
+        { error: updateCarritoError?.message || "Error actualizando solicitud" },
         { status: 500 }
       );
     }
