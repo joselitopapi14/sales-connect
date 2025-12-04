@@ -132,7 +132,8 @@ export async function GET(
       }> = [];
 
       for (const productoNegocio of productosNegocio) {
-        const catalogoMaestro = productoNegocio.catalogo_maestro as {
+        // biome-ignore lint/suspicious/noExplicitAny: Supabase relation types are complex
+        const catalogoMaestro = productoNegocio.catalogo_maestro as any as {
           id: string;
           nombre: string;
           descripcion: string;
