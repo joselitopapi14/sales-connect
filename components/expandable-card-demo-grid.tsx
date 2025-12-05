@@ -10,7 +10,7 @@ export default function ExpandableCardDemo() {
     null
   );
   const id = useId();
-  const ref = useRef<HTMLElement>(null);
+  const ref = useRef<HTMLDivElement>(null);
 
   useOutsideClick(ref, () => setActive(null));
 
