@@ -76,6 +76,8 @@ export function CarritoList({ refreshTrigger }: CarritoListProps) {
   const [dialogPagoAbierto, setDialogPagoAbierto] = useState(false);
   const [ofertaSeleccionada, setOfertaSeleccionada] = useState<{ ofertaId: string; carritoId: string } | null>(null);
   const [metodoPago, setMetodoPago] = useState<string>("tarjeta");
+  const [ofertasPorItem, setOfertasPorItem] = useState<Record<string, Oferta[]>>({});
+  const [cargandoOfertas, setCargandoOfertas] = useState<Record<string, boolean>>({});
 
   const fetchCarrito = useCallback(async () => {
     try {
@@ -96,11 +98,28 @@ export function CarritoList({ refreshTrigger }: CarritoListProps) {
     }
   }, []);
 
+  const fetchOfertasItem = useCallback(async (carritoId: string) => {
+    try {
+      setCargandoOfertas(prev => ({ ...prev, [carritoId]: true }));
+      const response = await fetch(`/api/carrito/${carritoId}/ofertas`);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Error obteniendo ofertas");
+      }
+
+      setOfertasPorItem(prev => ({ ...prev, [carritoId]: data.ofertas || [] }));
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("No se pudieron cargar las ofertas");
+    } finally {
+      setCargandoOfertas(prev => ({ ...prev, [carritoId]: false }));
+    }
+  }, []);
+
   useEffect(() => {
     fetchCarrito();
-    // Dependencias intencionalmente limitadas: fetchCarrito es estable, refreshTrigger dispara recarga
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [refreshTrigger]);
+  }, [refreshTrigger, fetchCarrito]);
 
   const ordenarOfertas = (ofertas: Oferta[], orden: string) => {
     const ofertasOrdenadas = [...ofertas];
@@ -261,11 +280,18 @@ export function CarritoList({ refreshTrigger }: CarritoListProps) {
                         
                         <Popover>
                           <PopoverTrigger asChild>
-                            <Button variant="outline" size="sm" className="h-7 text-xs">
-                              {item.ofertas.length > 0 
-                                ? `Ver ${item.ofertas.length} ${item.ofertas.length === 1 ? "oferta" : "ofertas"}`
-                                : "Ver ofertas"
-                              }
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="h-7 text-xs"
+                              onClick={() => fetchOfertasItem(item.id)}
+                            >
+                              {(() => {
+                                const ofertas = ofertasPorItem[item.id] || [];
+                                return ofertas.length > 0 
+                                  ? `Ver ${ofertas.length} ${ofertas.length === 1 ? "oferta" : "ofertas"}`
+                                  : "Ver ofertas";
+                              })()}
                             </Button>
                           </PopoverTrigger>
                           <PopoverContent className="w-[400px]" align="start" side="bottom" sideOffset={5}>
@@ -275,15 +301,22 @@ export function CarritoList({ refreshTrigger }: CarritoListProps) {
                                   <Store className="h-3.5 w-3.5" />
                                   Ofertas
                                 </h4>
-                                {item.ofertas.length > 0 && (
-                                  <Badge variant="secondary" className="text-xs">
-                                    {item.ofertas.length}
-                                  </Badge>
-                                )}
+                                {(() => {
+                                  const ofertas = ofertasPorItem[item.id] || [];
+                                  return ofertas.length > 0 && (
+                                    <Badge variant="secondary" className="text-xs">
+                                      {ofertas.length}
+                                    </Badge>
+                                  );
+                                })()}
                               </div>
                               <Separator className="my-2" />
                               
-                              {item.ofertas.length > 0 ? (
+                              {cargandoOfertas[item.id] ? (
+                                <div className="flex items-center justify-center py-8">
+                                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                                </div>
+                              ) : (ofertasPorItem[item.id] || []).length > 0 ? (
                                 <>
                                   <div className="flex items-center gap-2">
                                     <ArrowUpDown className="h-3.5 w-3.5 text-neutral-500" />
@@ -307,7 +340,7 @@ export function CarritoList({ refreshTrigger }: CarritoListProps) {
 
                                   <ScrollArea className="h-[280px] pr-3">
                                     <div className="space-y-2">
-                                      {ordenarOfertas(item.ofertas, ordenOfertasPor[item.id] || "precio_asc").map((oferta) => (
+                                      {ordenarOfertas(ofertasPorItem[item.id] || [], ordenOfertasPor[item.id] || "precio_asc").map((oferta) => (
                                         <div
                                           key={oferta.id}
                                           className="p-3 rounded-lg border bg-card hover:bg-accent/5 transition-colors space-y-2"
