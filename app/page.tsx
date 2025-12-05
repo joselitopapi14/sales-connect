@@ -1,4 +1,3 @@
-import Image from "next/image";
 import  HeroSectionOne  from "@/components/hero-section-demo-1";
 import { BackgroundGradientAnimation } from "@/components/ui/background-gradient-animation";
 
